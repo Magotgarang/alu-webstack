@@ -1,4 +1,5 @@
-sh script that displays info about subdomains
+#!/usr/bin/env bash
+# bash script that displays info about subdomains
 
 domain_information () {
     line=$(dig "$2"."$1" | grep -A1 'ANSWER SECTION:' | tr '\t' '\n' | tail -2 | tr '\n' ' ')
@@ -13,5 +14,5 @@ then
   domain_information "$1" "web-02"
 elif [ "$#" == 2 ]
 then
-  domain_information "$1" "$2"
+  domain_information "$1" "$2"
 fi
