@@ -1,6 +1,4 @@
 global
-        maxconn 2048
-        tune.ssl.default-dh-param 2048
         log /dev/log    local0
         log /dev/log    local1 notice
         chroot /var/lib/haproxy
@@ -22,8 +20,6 @@ global
 defaults
         log     global
         mode    http
-        option forwardfor
-        option http-server-close
         option  httplog
         option  dontlognull
         timeout connect 5000
@@ -37,12 +33,23 @@ defaults
         errorfile 503 /etc/haproxy/errors/503.http
         errorfile 504 /etc/haproxy/errors/504.http
 
-frontend  magot-frontend
-        bind *:443 ssl crt /etc/ssl/private/magotgarang.tech.pem
-        http-request add-header X-Forwarded-Proto https
-        default_backend magot-backend
+frontend www-http
+    	bind *:80
+    	mode http
+    	default_backend web-backend
 
-backend magot-backend
-        http-request add-header X-Forwarded-Proto https if { ssl_fc }
-        server 5766-web-01 107.21.173.253:80 check
-        server 5766-web-02 54.145.48.104:80 check
+frontend www-https
+    	bind *:443 ssl crt /etc/haproxy/magotgarang.tech.pem
+    	http-request set-header X-Forwarded-Proto https
+    	acl letsencrypt-acl path_beg /.well-known/acme-challenge/
+    	use_backend letsencrypt-backend if letsencrypt-acl
+    	default_backend web-backend
+
+backend web-backend
+	balance roundrobin
+    	redirect scheme https if !{ ssl_fc }
+    	server 5766-web-01 107.21.173.253:80 check
+    	server 5766-web-02 54.145.48.104:80 check
+
+backend letsencrypt-backend
+   	server letsencrypt 127.0.0.1:888
